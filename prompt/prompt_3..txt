@@ -1,0 +1,27 @@
+이제 백엔드를 추가한다.
+
+[목표]
+FastAPI 서버를 만들어서 프롬프트를 분석하는 API를 구현한다.
+
+[기능]
+POST /improve
+
+입력:
+{
+  "prompt": "사용자 입력"
+}
+
+출력:
+{
+  "issues": [
+    { "type": "목적 불명확", "description": "질문이 모호함" }
+  ],
+  "improved_prompt": "개선된 문장"
+}
+
+[요구사항]
+- FastAPI 코드 작성
+- 실행 방법 포함
+- 테스트 방법 포함
+
+그리고 Chrome 확장에서 fetch로 이 API를 호출하도록 content.js 수정해줘.
