@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Prompt Coach MVP",
   "version": "0.1.0",
-  "description": "Adds a small button next to the ChatGPT input box and logs the current prompt text.",
+  "description": "Adds a prompt coach button to ChatGPT and connects to local FastAPI /improve API.",
   "content_scripts": [
     {
       "matches": [

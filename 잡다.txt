@@ -1,0 +1,17 @@
+ 시작하기 전 할 거: vs코드 다시 다운받기/코덱스 vs코드 안에서 다운받기
+
+deactivate: 가상환경 닫고 키는거
+
+pip freeze > requirements.txt
+
+ 실행 하는 방법:
+ cd backend
+python -m venv .venv
+# Windows PowerShell
+.venv/Scripts/activate
+pip install -r requirements.txt
+copy .env.example .env
+# .env에서 GEMINI_API_KEY 값 입력
+cd ..
+uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
+
