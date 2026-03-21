@@ -122,20 +122,20 @@ function createPromptCoachPopup(currentPrompt) {
 
   popup.innerHTML = `
     <div class="prompt-coach-popup-header">
-      <h3>Prompt Coach</h3>
+      <h3>프롬프트 코치</h3>
       <button type="button" class="prompt-coach-close-button" aria-label="Close">×</button>
     </div>
     <div class="prompt-coach-popup-section">
-      <p class="prompt-coach-section-title">Current Prompt</p>
+      <p class="prompt-coach-section-title">현재 프롬프트</p>
       <div class="prompt-coach-preview"></div>
     </div>
     <div class="prompt-coach-results"></div>
     <div class="prompt-coach-popup-actions">
       <button type="button" class="prompt-coach-secondary-button" data-action="keep">
-        Keep
+        유지하기
       </button>
       <button type="button" class="prompt-coach-primary-button" data-action="apply" disabled>
-        Apply
+        개선 적용
       </button>
     </div>
   `;
@@ -147,7 +147,7 @@ function createPromptCoachPopup(currentPrompt) {
   const applyButton = popup.querySelector('[data-action="apply"]');
 
   if (previewElement) {
-    previewElement.textContent = currentPrompt || "No prompt text found.";
+    previewElement.textContent = currentPrompt || "입력된 프롬프트가 없습니다.";
   }
 
   closeButton?.addEventListener("click", () => {
@@ -177,8 +177,8 @@ function renderLoadingState(resultsContainer) {
 
   resultsContainer.innerHTML = `
     <div class="prompt-coach-popup-section">
-      <p class="prompt-coach-section-title">Analysis</p>
-      <div class="prompt-coach-status">Analyzing prompt...</div>
+      <p class="prompt-coach-section-title">분석 결과</p>
+      <div class="prompt-coach-status">프롬프트를 분석하고 있습니다...</div>
     </div>
   `;
 }
@@ -193,8 +193,24 @@ function renderErrorState(resultsContainer, message) {
 
   resultsContainer.innerHTML = `
     <div class="prompt-coach-popup-section">
-      <p class="prompt-coach-section-title">Error</p>
+      <p class="prompt-coach-section-title">오류 안내</p>
       <div class="prompt-coach-error-box">${message}</div>
+    </div>
+  `;
+}
+
+/**
+ * Shows non-error notice text in popup.
+ */
+function renderNoticeState(resultsContainer, message) {
+  if (!resultsContainer) {
+    return;
+  }
+
+  resultsContainer.innerHTML = `
+    <div class="prompt-coach-popup-section">
+      <p class="prompt-coach-section-title">안내</p>
+      <div class="prompt-coach-status">${message}</div>
     </div>
   `;
 }
@@ -229,11 +245,11 @@ function renderAnalysisState(resultsContainer, analysisResult) {
 
   resultsContainer.innerHTML = `
     <div class="prompt-coach-popup-section">
-      <p class="prompt-coach-section-title">Issues</p>
+      <p class="prompt-coach-section-title">문제점</p>
       <ul class="prompt-coach-issue-list"></ul>
     </div>
     <div class="prompt-coach-popup-section">
-      <p class="prompt-coach-section-title">Improved Prompt</p>
+      <p class="prompt-coach-section-title">개선 프롬프트</p>
       <div class="prompt-coach-improved-prompt"></div>
     </div>
   `;
@@ -261,7 +277,7 @@ async function handlePromptCoachClick(inputElement) {
 
   const popupParts = createPromptCoachPopup(promptText);
   if (!promptText) {
-    renderErrorState(popupParts.resultsContainer, "프롬프트를 먼저 입력해 주세요.");
+    renderNoticeState(popupParts.resultsContainer, "프롬프트를 먼저 입력해 주세요.");
     return;
   }
 
@@ -289,7 +305,7 @@ async function handlePromptCoachClick(inputElement) {
     const message =
       error instanceof Error && error.message
         ? error.message
-        : "Could not connect to backend server.";
+        : "백엔드 서버에 연결할 수 없습니다.";
     renderErrorState(popupParts.resultsContainer, message);
   }
 }
@@ -323,8 +339,8 @@ function injectPromptCoachButton() {
   button.type = "button";
   button.className = "prompt-coach-button";
   button.textContent = "✨";
-  button.title = "Prompt Coach";
-  button.setAttribute("aria-label", "Prompt Coach");
+  button.title = "프롬프트 코치";
+  button.setAttribute("aria-label", "프롬프트 코치");
 
   button.addEventListener("click", () => {
     const latestInput = getPromptInputElement();
