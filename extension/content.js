@@ -123,7 +123,7 @@ function createPromptCoachPopup(currentPrompt) {
   popup.innerHTML = `
     <div class="prompt-coach-popup-header">
       <h3>프롬프트 코치</h3>
-      <button type="button" class="prompt-coach-close-button" aria-label="Close">×</button>
+      <button type="button" class="prompt-coach-close-button" aria-label="닫기">×</button>
     </div>
     <div class="prompt-coach-popup-section">
       <p class="prompt-coach-section-title">현재 프롬프트</p>
