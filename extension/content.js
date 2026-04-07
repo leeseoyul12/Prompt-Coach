@@ -707,11 +707,26 @@ function createBetterPromptPopup(currentPrompt) {
 
   const closeButton = createButton("✕", "better-prompt-close-button");
   closeButton.setAttribute("aria-label", "닫기");
+  const headerControls = document.createElement("div");
+  headerControls.className = "better-prompt-header-controls";
+  const loginButton = createButton(
+    "로그인",
+    "better-prompt-tertiary-button better-prompt-header-button",
+    "login"
+  );
+  const logoutButton = createButton(
+    "로그아웃",
+    "better-prompt-tertiary-button better-prompt-header-button",
+    "logout"
+  );
 
   headerTextGroup.appendChild(title);
   headerTextGroup.appendChild(titleNotice);
   header.appendChild(headerTextGroup);
-  header.appendChild(closeButton);
+  headerControls.appendChild(loginButton);
+  headerControls.appendChild(logoutButton);
+  headerControls.appendChild(closeButton);
+  header.appendChild(headerControls);
 
   const currentPromptSection = createPopupSection("현재 프롬프트");
   const previewElement = document.createElement("div");
@@ -722,17 +737,34 @@ function createBetterPromptPopup(currentPrompt) {
   const resultsContainer = document.createElement("div");
   resultsContainer.className = "better-prompt-results";
 
+  const actions = document.createElement("div");
+  actions.className = "better-prompt-popup-actions";
+  const keepButton = createButton("유지하기", "better-prompt-tertiary-button", "keep");
+  const applyButton = createButton("개선 적용", "better-prompt-primary-button", "apply");
+  applyButton.disabled = true;
+  actions.appendChild(keepButton);
+  actions.appendChild(applyButton);
+
   const authSection = createPopupSection("저장 기능");
-  const authRow = document.createElement("div");
-  authRow.className = "better-prompt-tools-row";
+  authSection.classList.add("better-prompt-storage-section");
   const authStatus = document.createElement("span");
   authStatus.className = "better-prompt-auth-status";
-  const loginButton = createButton("구글 로그인", "better-prompt-link-button", "login");
-  const logoutButton = createButton("로그아웃", "better-prompt-link-button", "logout");
-  authRow.appendChild(authStatus);
-  authRow.appendChild(loginButton);
-  authRow.appendChild(logoutButton);
-  authSection.appendChild(authRow);
+  const authActions = document.createElement("div");
+  authActions.className = "better-prompt-storage-actions";
+  const saveButton = createButton(
+    "저장",
+    "better-prompt-secondary-button better-prompt-tool-button",
+    "save"
+  );
+  const loadButton = createButton(
+    "불러오기",
+    "better-prompt-secondary-button better-prompt-tool-button",
+    "load"
+  );
+  authActions.appendChild(saveButton);
+  authActions.appendChild(loadButton);
+  authSection.appendChild(authStatus);
+  authSection.appendChild(authActions);
 
   const saveFormSection = createPopupSection("프롬프트 저장");
   saveFormSection.classList.add("is-hidden");
@@ -747,7 +779,7 @@ function createBetterPromptPopup(currentPrompt) {
   saveContentInput.placeholder = "저장할 프롬프트";
   const saveFormActions = document.createElement("div");
   saveFormActions.className = "better-prompt-inline-actions";
-  const saveConfirmButton = createButton("저장 확인", "better-prompt-secondary-button", "confirm-save");
+  const saveConfirmButton = createButton("저장 확인", "better-prompt-primary-button", "confirm-save");
   const saveCancelButton = createButton("취소", "better-prompt-secondary-button", "cancel-save");
   saveFormActions.appendChild(saveConfirmButton);
   saveFormActions.appendChild(saveCancelButton);
@@ -762,29 +794,13 @@ function createBetterPromptPopup(currentPrompt) {
   savedPromptList.className = "better-prompt-saved-list";
   savedPromptSection.appendChild(savedPromptList);
 
-  const helperActions = document.createElement("div");
-  helperActions.className = "better-prompt-helper-actions";
-  const saveButton = createButton("저장", "better-prompt-link-button", "save");
-  const loadButton = createButton("불러오기", "better-prompt-link-button", "load");
-  helperActions.appendChild(saveButton);
-  helperActions.appendChild(loadButton);
-
-  const actions = document.createElement("div");
-  actions.className = "better-prompt-popup-actions";
-  const keepButton = createButton("유지하기", "better-prompt-secondary-button", "keep");
-  const applyButton = createButton("개선 적용", "better-prompt-primary-button", "apply");
-  applyButton.disabled = true;
-  actions.appendChild(keepButton);
-  actions.appendChild(applyButton);
-
   popup.appendChild(header);
   popup.appendChild(currentPromptSection);
   popup.appendChild(resultsContainer);
+  popup.appendChild(actions);
   popup.appendChild(authSection);
   popup.appendChild(saveFormSection);
   popup.appendChild(savedPromptSection);
-  popup.appendChild(helperActions);
-  popup.appendChild(actions);
 
   document.body.appendChild(popup);
 
@@ -804,7 +820,9 @@ function createBetterPromptPopup(currentPrompt) {
     saveCancelButton: saveCancelButton,
     savedPromptSection: savedPromptSection,
     savedPromptList: savedPromptList,
-    editingSavedPromptId: null
+    editingSavedPromptId: null,
+    savedPromptsCache: [],
+    selectedSavedPromptId: null
   };
 
   closeButton.addEventListener("click", function() {
@@ -880,7 +898,7 @@ function openSaveForm(popupParts, savedPromptItem) {
     popupParts.editingSavedPromptId = savedPromptItem ? savedPromptItem.id : null;
     popupParts.saveTitleInput.value = savedPromptItem
       ? savedPromptItem.title
-      : defaultContent.slice(0, 24);
+      : "";
     popupParts.saveContentInput.value = defaultContent;
     popupParts.saveFormSection.classList.remove("is-hidden");
     popupParts.saveTitleInput.focus();
@@ -897,6 +915,15 @@ function closeSaveForm(popupParts) {
   popupParts.saveTitleInput.value = "";
   popupParts.saveContentInput.value = "";
   popupParts.saveFormSection.classList.add("is-hidden");
+}
+
+function getSavedPromptSummary(content) {
+  const normalized = normalizePromptText(content);
+  if (!normalized) {
+    return "";
+  }
+
+  return normalized.length > 72 ? normalized.slice(0, 72) + "..." : normalized;
 }
 
 function submitSavedPrompt(popupParts) {
@@ -930,6 +957,7 @@ function submitSavedPrompt(popupParts) {
     });
   }).then(function() {
     closeSaveForm(popupParts);
+    popupParts.selectedSavedPromptId = null;
     renderNoticeState(
       popupParts.resultsContainer,
       editingSavedPromptId ? "저장된 프롬프트를 수정했습니다." : "프롬프트를 저장했습니다."
@@ -944,9 +972,11 @@ function submitSavedPrompt(popupParts) {
 }
 
 function renderSavedPromptList(popupParts, savedPrompts) {
+  popupParts.savedPromptsCache = savedPrompts.slice();
   clearElement(popupParts.savedPromptList);
 
   if (!savedPrompts.length) {
+    popupParts.selectedSavedPromptId = null;
     const emptyMessage = document.createElement("div");
     emptyMessage.className = "better-prompt-status";
     emptyMessage.textContent = "저장된 프롬프트가 없습니다.";
@@ -954,68 +984,105 @@ function renderSavedPromptList(popupParts, savedPrompts) {
     return;
   }
 
-  savedPrompts.forEach(function(item) {
-    const card = document.createElement("div");
-    card.className = "better-prompt-saved-card";
+  const selectedPrompt = popupParts.selectedSavedPromptId
+    ? savedPrompts.find(function(item) {
+        return item.id === popupParts.selectedSavedPromptId;
+      })
+    : null;
 
-    const cardTitle = document.createElement("strong");
-    cardTitle.textContent = item.title;
+  if (!selectedPrompt) {
+    popupParts.selectedSavedPromptId = null;
+    savedPrompts.forEach(function(item) {
+      const itemButton = document.createElement("button");
+      itemButton.type = "button";
+      itemButton.className = "better-prompt-saved-item";
 
-    const cardContent = document.createElement("div");
-    cardContent.className = "better-prompt-saved-preview";
-    cardContent.textContent = item.content;
+      const itemTitle = document.createElement("strong");
+      itemTitle.textContent = item.title;
 
-    const actionRow = document.createElement("div");
-    actionRow.className = "better-prompt-inline-actions";
-    const applyButton = createButton("적용", "better-prompt-secondary-button");
-    const editButton = createButton("수정", "better-prompt-secondary-button");
-    const deleteButton = createButton("삭제", "better-prompt-secondary-button");
+      const itemSummary = document.createElement("span");
+      itemSummary.textContent = getSavedPromptSummary(item.content);
 
-    applyButton.addEventListener("click", function() {
-      const inputElement = getPromptInputElement();
-      if (!inputElement) {
-        renderNoticeState(
-          popupParts.resultsContainer,
-          "현재 입력창을 찾을 수 없습니다."
-        );
-        return;
-      }
-
-      setPromptText(inputElement, item.content);
-      inputElement.focus();
-      dismissActiveSession();
-    });
-
-    editButton.addEventListener("click", function() {
-      openSaveForm(popupParts, item);
-    });
-
-    deleteButton.addEventListener("click", function() {
-      if (!window.confirm("이 저장 프롬프트를 삭제할까요?")) {
-        return;
-      }
-
-      requestAuthorizedJson("/saved-prompts/" + item.id, {
-        method: "DELETE"
-      }).then(function() {
-        renderNoticeState(popupParts.resultsContainer, "저장된 프롬프트를 삭제했습니다.");
-        return loadSavedPrompts(popupParts);
-      }).catch(function(error) {
-        renderErrorState(
-          popupParts.resultsContainer,
-          error instanceof Error ? error.message : "삭제에 실패했습니다."
-        );
+      itemButton.appendChild(itemTitle);
+      itemButton.appendChild(itemSummary);
+      itemButton.addEventListener("click", function() {
+        popupParts.selectedSavedPromptId = item.id;
+        renderSavedPromptList(popupParts, popupParts.savedPromptsCache);
       });
-    });
 
-    actionRow.appendChild(applyButton);
-    actionRow.appendChild(editButton);
-    actionRow.appendChild(deleteButton);
-    card.appendChild(cardTitle);
-    card.appendChild(cardContent);
-    card.appendChild(actionRow);
-    popupParts.savedPromptList.appendChild(card);
+      popupParts.savedPromptList.appendChild(itemButton);
+    });
+    return;
+  }
+
+  const card = document.createElement("div");
+  card.className = "better-prompt-saved-card";
+
+  const cardTitle = document.createElement("strong");
+  cardTitle.textContent = selectedPrompt.title;
+
+  const cardContent = document.createElement("div");
+  cardContent.className = "better-prompt-saved-preview";
+  cardContent.textContent = selectedPrompt.content;
+
+  const actionRow = document.createElement("div");
+  actionRow.className = "better-prompt-action-grid";
+  const applyButton = createButton("적용", "better-prompt-secondary-button");
+  const editButton = createButton("수정", "better-prompt-secondary-button");
+  const deleteButton = createButton("삭제", "better-prompt-secondary-button");
+  const backButton = createButton("뒤로가기", "better-prompt-secondary-button");
+
+  applyButton.addEventListener("click", function() {
+    const inputElement = getPromptInputElement();
+    if (!inputElement) {
+      renderNoticeState(
+        popupParts.resultsContainer,
+        "현재 입력창을 찾을 수 없습니다."
+      );
+      return;
+    }
+
+    setPromptText(inputElement, selectedPrompt.content);
+    inputElement.focus();
+    dismissActiveSession();
   });
+
+  editButton.addEventListener("click", function() {
+    openSaveForm(popupParts, selectedPrompt);
+  });
+
+  deleteButton.addEventListener("click", function() {
+    if (!window.confirm("이 저장 프롬프트를 삭제할까요?")) {
+      return;
+    }
+
+    requestAuthorizedJson("/saved-prompts/" + selectedPrompt.id, {
+      method: "DELETE"
+    }).then(function() {
+      popupParts.selectedSavedPromptId = null;
+      renderNoticeState(popupParts.resultsContainer, "저장된 프롬프트를 삭제했습니다.");
+      return loadSavedPrompts(popupParts);
+    }).catch(function(error) {
+      renderErrorState(
+        popupParts.resultsContainer,
+        error instanceof Error ? error.message : "삭제에 실패했습니다."
+      );
+    });
+  });
+
+  backButton.addEventListener("click", function() {
+    popupParts.selectedSavedPromptId = null;
+    renderSavedPromptList(popupParts, popupParts.savedPromptsCache);
+  });
+
+  actionRow.appendChild(applyButton);
+  actionRow.appendChild(editButton);
+  actionRow.appendChild(deleteButton);
+  actionRow.appendChild(backButton);
+  card.appendChild(cardTitle);
+  card.appendChild(cardContent);
+  card.appendChild(actionRow);
+  popupParts.savedPromptList.appendChild(card);
 }
 
 function loadSavedPrompts(popupParts) {
@@ -1039,10 +1106,17 @@ function loadSavedPrompts(popupParts) {
 
 function toggleSavedPromptList(popupParts) {
   if (!popupParts.savedPromptSection.classList.contains("is-hidden")) {
+    if (popupParts.selectedSavedPromptId) {
+      popupParts.selectedSavedPromptId = null;
+      renderSavedPromptList(popupParts, popupParts.savedPromptsCache);
+      return;
+    }
+
     popupParts.savedPromptSection.classList.add("is-hidden");
     return;
   }
 
+  popupParts.selectedSavedPromptId = null;
   loadSavedPrompts(popupParts);
 }
 
